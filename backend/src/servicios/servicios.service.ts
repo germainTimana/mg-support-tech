@@ -1,0 +1,186 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
+import { Servicio, ServicioDocument } from './schemas/servicio.schema';
+import {
+  CreateServicioDto,
+  UpdateEstadoDto,
+  AddObservacionDto,
+} from './dto/servicio.dto';
+import { ServiceStatus, UserRole } from '../common/enums';
+import { EventsGateway } from '../events/events.gateway';
+
+@Injectable()
+export class ServiciosService {
+  constructor(
+    @InjectModel(Servicio.name) private servicioModel: Model<ServicioDocument>,
+    private eventsGateway: EventsGateway,
+  ) {}
+
+  private generateCodigo(): string {
+    const short = uuidv4().split('-')[0].toUpperCase();
+    return `MGS-${short}`;
+  }
+
+  async create(dto: CreateServicioDto, adminId: string) {
+    const codigoServicio = this.generateCodigo();
+    const servicio = await this.servicioModel.create({
+      ...dto,
+      codigoServicio,
+      creadoPorId: adminId,
+      estado: ServiceStatus.PENDIENTE,
+      observaciones: [
+        {
+          fase: ServiceStatus.PENDIENTE,
+          texto: 'Servicio registrado y asignado.',
+          autorId: adminId,
+          fecha: new Date(),
+        },
+      ],
+    });
+    const populated = await this.populate(servicio._id.toString());
+    this.eventsGateway.emitServicioUpdated(populated);
+    return populated;
+  }
+
+  async findAll(filters?: { tecnicoId?: string; clienteId?: string; estado?: ServiceStatus }) {
+    const query: Record<string, unknown> = {};
+    if (filters?.tecnicoId) query.tecnicoId = filters.tecnicoId;
+    if (filters?.clienteId) query.clienteId = filters.clienteId;
+    if (filters?.estado) query.estado = filters.estado;
+    return this.servicioModel
+      .find(query)
+      .populate('equipoId')
+      .populate('clienteId', 'nombre email documentoIdentidad telefono')
+      .populate('tecnicoId', 'nombre email telefono')
+      .populate('creadoPorId', 'nombre email')
+      .populate('observaciones.autorId', 'nombre role')
+      .sort({ updatedAt: -1 })
+      .exec();
+  }
+
+  async findByCodigo(codigo: string) {
+    const servicio = await this.servicioModel
+      .findOne({ codigoServicio: codigo.toUpperCase() })
+      .populate('equipoId')
+      .populate('clienteId', 'nombre email documentoIdentidad telefono')
+      .populate('tecnicoId', 'nombre email telefono')
+      .populate('creadoPorId', 'nombre email')
+      .populate('observaciones.autorId', 'nombre role')
+      .exec();
+    if (!servicio) throw new NotFoundException('Servicio no encontrado');
+    return servicio;
+  }
+
+  async findById(id: string) {
+    const servicio = await this.populate(id);
+    if (!servicio) throw new NotFoundException('Servicio no encontrado');
+    return servicio;
+  }
+
+  async updateEstado(
+    id: string,
+    dto: UpdateEstadoDto,
+    user: { id: string; role: UserRole },
+  ) {
+    const servicio = await this.servicioModel.findById(id);
+    if (!servicio) throw new NotFoundException('Servicio no encontrado');
+
+    if (user.role === UserRole.TECNICO && servicio.tecnicoId.toString() !== user.id) {
+      throw new ForbiddenException('No puede modificar servicios de otro técnico');
+    }
+
+    if (user.role === UserRole.CLIENTE) {
+      throw new ForbiddenException('El cliente no puede cambiar el estado');
+    }
+
+    const validTransitions: Record<ServiceStatus, ServiceStatus[]> = {
+      [ServiceStatus.PENDIENTE]: [ServiceStatus.EN_REPARACION],
+      [ServiceStatus.EN_REPARACION]: [ServiceStatus.LISTO, ServiceStatus.PENDIENTE],
+      [ServiceStatus.LISTO]: [ServiceStatus.ENTREGADO, ServiceStatus.EN_REPARACION],
+      [ServiceStatus.ENTREGADO]: [],
+    };
+
+    if (!validTransitions[servicio.estado]?.includes(dto.estado)) {
+      throw new BadRequestException(
+        `Transición inválida de ${servicio.estado} a ${dto.estado}`,
+      );
+    }
+
+    if (dto.estado === ServiceStatus.ENTREGADO && !servicio.pagado) {
+      throw new BadRequestException('El servicio debe estar pagado antes de entregarse');
+    }
+
+    servicio.estado = dto.estado;
+    await servicio.save();
+    const populated = await this.populate(id);
+    this.eventsGateway.emitServicioUpdated(populated);
+    return populated;
+  }
+
+  async addObservacion(
+    id: string,
+    dto: AddObservacionDto,
+    userId: string,
+  ) {
+    const servicio = await this.servicioModel.findById(id);
+    if (!servicio) throw new NotFoundException('Servicio no encontrado');
+
+    servicio.observaciones.push({
+      fase: dto.fase,
+      texto: dto.texto,
+      autorId: userId as unknown as import('mongoose').Types.ObjectId,
+      fecha: new Date(),
+    });
+    await servicio.save();
+    const populated = await this.populate(id);
+    this.eventsGateway.emitServicioUpdated(populated);
+    return populated;
+  }
+
+  async markAsPaid(id: string) {
+    const servicio = await this.servicioModel.findByIdAndUpdate(
+      id,
+      { pagado: true },
+      { new: true },
+    );
+    if (!servicio) throw new NotFoundException('Servicio no encontrado');
+    const populated = await this.populate(id);
+    this.eventsGateway.emitServicioUpdated(populated);
+    return populated;
+  }
+
+  async getKanban(tecnicoId?: string, clienteId?: string) {
+    const filter: Record<string, string> = {};
+    if (tecnicoId) filter.tecnicoId = tecnicoId;
+    if (clienteId) filter.clienteId = clienteId;
+    const servicios = await this.findAll(filter);
+    const board: Record<ServiceStatus, ServicioDocument[]> = {
+      [ServiceStatus.PENDIENTE]: [],
+      [ServiceStatus.EN_REPARACION]: [],
+      [ServiceStatus.LISTO]: [],
+      [ServiceStatus.ENTREGADO]: [],
+    };
+    for (const s of servicios) {
+      board[s.estado as ServiceStatus]?.push(s as ServicioDocument);
+    }
+    return board;
+  }
+
+  private async populate(id: string) {
+    return this.servicioModel
+      .findById(id)
+      .populate('equipoId')
+      .populate('clienteId', 'nombre email documentoIdentidad telefono')
+      .populate('tecnicoId', 'nombre email telefono')
+      .populate('creadoPorId', 'nombre email')
+      .populate('observaciones.autorId', 'nombre role')
+      .exec();
+  }
+}

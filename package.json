@@ -1,0 +1,12 @@
+{
+  "name": "mg-support-tech",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MG Support Tech - Sistema de recepción y entrega de computadores",
+  "scripts": {
+    "dev:backend": "cd backend && npm run start:dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "seed": "cd backend && npm run seed"
+  }
+}
