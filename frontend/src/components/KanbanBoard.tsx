@@ -118,7 +118,7 @@ export function KanbanBoard({ readOnly, allowDrag = true, role, onPay }: KanbanB
     if (!servicio || servicio.estado === newEstado) return;
 
     try {
-      const res = await fetch(`/api/servicios/${servicioId}`, {
+      const res = await fetch(`/api/servicios/${servicioId}/estado`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado: newEstado }),
