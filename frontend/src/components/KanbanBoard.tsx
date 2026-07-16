@@ -108,14 +108,26 @@ export function KanbanBoard({ readOnly, allowDrag = true, role, onPay }: KanbanB
 
     const servicioId = dragItem.id as string;
     const newEstado = over.id as ServiceStatus;
-    const servicio = [
+    const allServicios = [
       ...board.pendiente,
       ...board.en_reparacion,
       ...board.listo,
       ...board.entregado,
-    ].find((s) => s._id === servicioId);
+    ];
+    const servicio = allServicios.find((s) => s._id === servicioId);
 
     if (!servicio || servicio.estado === newEstado) return;
+    const oldEstado = servicio.estado;
+
+    setBoard((prev) => {
+      const updated = prev[oldEstado].filter((s) => s._id !== servicioId);
+      const moved = { ...servicio, estado: newEstado };
+      return {
+        ...prev,
+        [oldEstado]: updated,
+        [newEstado]: [...(prev[newEstado] || []), moved],
+      };
+    });
 
     try {
       const res = await fetch(`/api/servicios/${servicioId}/estado`, {
