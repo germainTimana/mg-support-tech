@@ -41,7 +41,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-white">MG Support Tech</h1>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Recepción y entrega de equipos de cómputo
+            Este es un sistema de soporte técnico para la gestión de servicios de mantenimiento y reparación de equipos de cómputo.
           </p>
         </div>
 
@@ -88,7 +88,11 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-xs text-[var(--muted)]">
-          Demo admin: admin@mgsupport.com / admin123
+          Ingresa con tu correo electrónico y contraseña para acceder al sistema de soporte técnico.
+          <br />
+          <br />
+          <br />
+           &copy; 2024 MG Support Tech. Todos los derechos reservados.
         </p>
       </div>
     </div>
