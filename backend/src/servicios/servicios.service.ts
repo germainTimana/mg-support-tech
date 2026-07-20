@@ -15,12 +15,15 @@ import {
 } from './dto/servicio.dto';
 import { ServiceStatus, UserRole } from '../common/enums';
 import { EventsGateway } from '../events/events.gateway';
+import { AppLogger } from '../common/logger/app-logger.service';
+import { NotFoundDomainException, BadRequestDomainException, ForbiddenDomainException } from '../common/exceptions/domain.exception';
 
 @Injectable()
 export class ServiciosService {
   constructor(
     @InjectModel(Servicio.name) private servicioModel: Model<ServicioDocument>,
     private eventsGateway: EventsGateway,
+    private readonly logger: AppLogger,
   ) {}
 
   private generateCodigo(): string {
@@ -29,24 +32,50 @@ export class ServiciosService {
   }
 
   async create(dto: CreateServicioDto, adminId: string) {
-    const codigoServicio = this.generateCodigo();
-    const servicio = await this.servicioModel.create({
-      ...dto,
-      codigoServicio,
-      creadoPorId: adminId,
-      estado: ServiceStatus.PENDIENTE,
-      observaciones: [
-        {
-          fase: ServiceStatus.PENDIENTE,
-          texto: 'Servicio registrado y asignado.',
-          autorId: adminId,
-          fecha: new Date(),
-        },
-      ],
-    });
-    const populated = await this.populate(servicio._id.toString());
-    this.eventsGateway.emitServicioUpdated(populated);
-    return populated;
+    const traceId = this.newTrace();
+    try {
+      this.logger.info('Creando servicio', {
+        context: 'ServiciosService.create',
+        traceId,
+        adminId,
+        clienteId: dto.clienteId,
+        tecnicoId: dto.tecnicoId,
+      });
+
+      const codigoServicio = this.generateCodigo();
+      const servicio = await this.servicioModel.create({
+        ...dto,
+        codigoServicio,
+        creadoPorId: adminId,
+        estado: ServiceStatus.PENDIENTE,
+        observaciones: [
+          {
+            fase: ServiceStatus.PENDIENTE,
+            texto: 'Servicio registrado y asignado.',
+            autorId: adminId,
+            fecha: new Date(),
+          },
+        ],
+      });
+      const populated = await this.populate(servicio._id.toString());
+      this.eventsGateway.emitServicioUpdated(populated);
+      this.logger.info('Servicio creado', {
+        context: 'ServiciosService.create',
+        traceId,
+        servicioId: servicio._id.toString(),
+        codigoServicio,
+      });
+      return populated;
+    } catch (err) {
+      this.logger.error('Fallo al crear servicio', {
+        context: 'ServiciosService.create',
+        traceId,
+        adminId,
+        exception: err instanceof Error ? err.stack : String(err),
+      });
+      if (err instanceof NotFoundException) throw err;
+      throw new BadRequestDomainException('No se pudo crear el servicio');
+    }
   }
 
   async findAll(filters?: { tecnicoId?: string; clienteId?: string; estado?: ServiceStatus }) {
@@ -65,22 +94,45 @@ export class ServiciosService {
       .exec();
   }
 
-  async findByCodigo(codigo: string) {
-    const servicio = await this.servicioModel
-      .findOne({ codigoServicio: codigo.toUpperCase() })
-      .populate('equipoId')
-      .populate('clienteId', 'nombre email documentoIdentidad telefono')
-      .populate('tecnicoId', 'nombre email telefono')
-      .populate('creadoPorId', 'nombre email')
-      .populate('observaciones.autorId', 'nombre role')
-      .exec();
-    if (!servicio) throw new NotFoundException('Servicio no encontrado');
-    return servicio;
+  async findByCodigo(codigo: string, userId?: string) {
+    try {
+      const servicio = await this.servicioModel
+        .findOne({ codigoServicio: codigo.toUpperCase() })
+        .populate('equipoId')
+        .populate('clienteId', 'nombre email documentoIdentidad telefono')
+        .populate('tecnicoId', 'nombre email telefono')
+        .populate('creadoPorId', 'nombre email')
+        .populate('observaciones.autorId', 'nombre role')
+        .exec();
+      if (!servicio) {
+        this.logger.warn('Servicio no encontrado por código', {
+          context: 'ServiciosService.findByCodigo',
+          codigo,
+          userId,
+        });
+        throw new NotFoundDomainException('Servicio no encontrado');
+      }
+      return servicio;
+    } catch (err) {
+      if (err instanceof NotFoundDomainException) throw err;
+      this.logger.error('Error al buscar servicio por código', {
+        context: 'ServiciosService.findByCodigo',
+        codigo,
+        exception: err instanceof Error ? err.stack : String(err),
+      });
+      throw err;
+    }
   }
 
   async findById(id: string) {
     const servicio = await this.populate(id);
-    if (!servicio) throw new NotFoundException('Servicio no encontrado');
+    if (!servicio) {
+      this.logger.warn('Servicio no encontrado por id', {
+        context: 'ServiciosService.findById',
+        servicioId: id,
+      });
+      throw new NotFoundDomainException('Servicio no encontrado');
+    }
     return servicio;
   }
 
@@ -89,48 +141,105 @@ export class ServiciosService {
     dto: UpdateEstadoDto,
     user: { id: string; role: UserRole },
   ) {
-    const servicio = await this.servicioModel.findById(id);
-    if (!servicio) throw new NotFoundException('Servicio no encontrado');
+    try {
+      const servicio = await this.servicioModel.findById(id);
+      if (!servicio) throw new NotFoundDomainException('Servicio no encontrado');
 
-    if (user.role === UserRole.TECNICO && servicio.tecnicoId.toString() !== user.id) {
-      throw new ForbiddenException('No puede modificar servicios de otro técnico');
+      if (user.role === UserRole.TECNICO && servicio.tecnicoId.toString() !== user.id) {
+        this.logger.warn('Técnico intenta modificar servicio ajeno', {
+          context: 'ServiciosService.updateEstado',
+          servicioId: id,
+          userId: user.id,
+          tecnicoAsignado: servicio.tecnicoId.toString(),
+        });
+        throw new ForbiddenDomainException('No puede modificar servicios de otro técnico');
+      }
+
+      if (user.role === UserRole.CLIENTE) {
+        throw new ForbiddenDomainException('El cliente no puede cambiar el estado');
+      }
+
+      if (
+        servicio.estado === ServiceStatus.ENTREGADO &&
+        user.role !== UserRole.ADMIN
+      ) {
+        this.logger.warn('Intento de revertir servicio entregado sin ser admin', {
+          context: 'ServiciosService.updateEstado',
+          servicioId: id,
+          userId: user.id,
+          role: user.role,
+          to: dto.estado,
+        });
+        throw new ForbiddenDomainException(
+          'Solo un administrador puede modificar un servicio entregado',
+        );
+      }
+
+      const validTransitions: Record<ServiceStatus, ServiceStatus[]> = {
+        [ServiceStatus.PENDIENTE]: [ServiceStatus.EN_REPARACION],
+        [ServiceStatus.EN_REPARACION]: [ServiceStatus.LISTO, ServiceStatus.PENDIENTE],
+        [ServiceStatus.LISTO]: [ServiceStatus.ENTREGADO, ServiceStatus.EN_REPARACION],
+        [ServiceStatus.ENTREGADO]: [
+          ServiceStatus.LISTO,
+          ServiceStatus.EN_REPARACION,
+          ServiceStatus.PENDIENTE,
+        ],
+      };
+
+      if (!validTransitions[servicio.estado]?.includes(dto.estado)) {
+        this.logger.warn('Transición de estado inválida', {
+          context: 'ServiciosService.updateEstado',
+          servicioId: id,
+          userId: user.id,
+          from: servicio.estado,
+          to: dto.estado,
+        });
+        throw new BadRequestDomainException(
+          `Transición inválida de ${servicio.estado} a ${dto.estado}`,
+        );
+      }
+
+      if (dto.estado === ServiceStatus.ENTREGADO && !servicio.pagado) {
+        this.logger.warn('Intento de entrega sin pago', {
+          context: 'ServiciosService.updateEstado',
+          servicioId: id,
+          userId: user.id,
+        });
+        throw new BadRequestDomainException('El servicio debe estar pagado antes de entregarse');
+      }
+
+      servicio.estado = dto.estado;
+      await servicio.save();
+      const populated = await this.populate(id);
+      this.eventsGateway.emitServicioUpdated(populated);
+      this.logger.info('Estado de servicio actualizado', {
+        context: 'ServiciosService.updateEstado',
+        servicioId: id,
+        userId: user.id,
+        estado: dto.estado,
+      });
+      return populated;
+    } catch (err) {
+      if (
+        err instanceof NotFoundDomainException ||
+        err instanceof ForbiddenDomainException ||
+        err instanceof BadRequestDomainException
+      ) {
+        throw err;
+      }
+      this.logger.error('Error inesperado al actualizar estado', {
+        context: 'ServiciosService.updateEstado',
+        servicioId: id,
+        userId: user.id,
+        exception: err instanceof Error ? err.stack : String(err),
+      });
+      throw new BadRequestDomainException('No se pudo actualizar el estado del servicio');
     }
-
-    if (user.role === UserRole.CLIENTE) {
-      throw new ForbiddenException('El cliente no puede cambiar el estado');
-    }
-
-    const validTransitions: Record<ServiceStatus, ServiceStatus[]> = {
-      [ServiceStatus.PENDIENTE]: [ServiceStatus.EN_REPARACION],
-      [ServiceStatus.EN_REPARACION]: [ServiceStatus.LISTO, ServiceStatus.PENDIENTE],
-      [ServiceStatus.LISTO]: [ServiceStatus.ENTREGADO, ServiceStatus.EN_REPARACION],
-      [ServiceStatus.ENTREGADO]: [],
-    };
-
-    if (!validTransitions[servicio.estado]?.includes(dto.estado)) {
-      throw new BadRequestException(
-        `Transición inválida de ${servicio.estado} a ${dto.estado}`,
-      );
-    }
-
-    if (dto.estado === ServiceStatus.ENTREGADO && !servicio.pagado) {
-      throw new BadRequestException('El servicio debe estar pagado antes de entregarse');
-    }
-
-    servicio.estado = dto.estado;
-    await servicio.save();
-    const populated = await this.populate(id);
-    this.eventsGateway.emitServicioUpdated(populated);
-    return populated;
   }
 
-  async addObservacion(
-    id: string,
-    dto: AddObservacionDto,
-    userId: string,
-  ) {
+  async addObservacion(id: string, dto: AddObservacionDto, userId: string) {
     const servicio = await this.servicioModel.findById(id);
-    if (!servicio) throw new NotFoundException('Servicio no encontrado');
+    if (!servicio) throw new NotFoundDomainException('Servicio no encontrado');
 
     servicio.observaciones.push({
       fase: dto.fase,
@@ -141,6 +250,11 @@ export class ServiciosService {
     await servicio.save();
     const populated = await this.populate(id);
     this.eventsGateway.emitServicioUpdated(populated);
+    this.logger.info('Observación agregada', {
+      context: 'ServiciosService.addObservacion',
+      servicioId: id,
+      userId,
+    });
     return populated;
   }
 
@@ -150,7 +264,7 @@ export class ServiciosService {
       { pagado: true },
       { new: true },
     );
-    if (!servicio) throw new NotFoundException('Servicio no encontrado');
+    if (!servicio) throw new NotFoundDomainException('Servicio no encontrado');
     const populated = await this.populate(id);
     this.eventsGateway.emitServicioUpdated(populated);
     return populated;
@@ -171,6 +285,10 @@ export class ServiciosService {
       board[s.estado as ServiceStatus]?.push(s as ServicioDocument);
     }
     return board;
+  }
+
+  private newTrace(): string {
+    return `trace_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
   }
 
   private async populate(id: string) {

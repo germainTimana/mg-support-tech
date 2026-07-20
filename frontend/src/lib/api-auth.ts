@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 import type { UserRole } from '@/lib/types';
+import { uiLogger } from './ui-logger';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'mg-support-tech-secret-change-in-production',
@@ -52,12 +53,18 @@ export async function proxyToBackend(
     process.env.BACKEND_INTERNAL_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
     'http://localhost:4000/api';
+
+  const backendPath =
+    path === 'auto'
+      ? req.nextUrl.pathname.replace(/^\/api/, '') || '/'
+      : path;
+
   const body =
     method !== 'GET' && method !== 'DELETE'
       ? await req.text()
       : undefined;
 
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${backendPath}`, {
     method: method || req.method,
     headers: {
       'Content-Type': 'application/json',
@@ -68,5 +75,24 @@ export async function proxyToBackend(
   });
 
   const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    uiLogger.error('Proxy devolvió respuesta errónea al cliente', {
+      scope: 'proxy',
+      url: path,
+      status: res.status,
+      role: session.user.role,
+      code: (data as { error?: string })?.error,
+      traceId: (data as { traceId?: string })?.traceId,
+    });
+  } else {
+    uiLogger.debug('Proxy reenvió respuesta exitosa', {
+      scope: 'proxy',
+      url: path,
+      status: res.status,
+      role: session.user.role,
+    });
+  }
+
   return NextResponse.json(data, { status: res.status });
 }

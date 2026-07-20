@@ -109,7 +109,7 @@ export function KanbanBoard({ readOnly, allowDrag = true, role, onPay }: KanbanB
     if (!over) return;
 
     const servicioId = dragItem.id as string;
-    const newEstado = over.id as ServiceStatus;
+    const overId = over.id as string;
     const allServicios = [
       ...board.pendiente,
       ...board.en_reparacion,
@@ -118,7 +118,16 @@ export function KanbanBoard({ readOnly, allowDrag = true, role, onPay }: KanbanB
     ];
     const servicio = allServicios.find((s) => s._id === servicioId);
 
-    if (!servicio || servicio.estado === newEstado) return;
+    const validStatuses = KANBAN_COLUMNS.map((c) => c.id) as ServiceStatus[];
+    let newEstado: ServiceStatus | undefined;
+    if (validStatuses.includes(overId as ServiceStatus)) {
+      newEstado = overId as ServiceStatus;
+    } else {
+      const overServicio = allServicios.find((s) => s._id === overId);
+      newEstado = overServicio?.estado;
+    }
+
+    if (!servicio || !newEstado || servicio.estado === newEstado) return;
     const oldEstado = servicio.estado;
 
     setBoard((prev) => {

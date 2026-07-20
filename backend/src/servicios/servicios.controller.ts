@@ -68,8 +68,11 @@ export class ServiciosController {
 
   @Get('codigo/:codigo')
   @Roles(UserRole.ADMIN, UserRole.TECNICO, UserRole.CLIENTE)
-  findByCodigo(@Param('codigo') codigo: string) {
-    return this.serviciosService.findByCodigo(codigo);
+  findByCodigo(
+    @Param('codigo') codigo: string,
+    @CurrentUser() user?: { id: string; role: UserRole },
+  ) {
+    return this.serviciosService.findByCodigo(codigo, user?.id);
   }
 
   @Get(':id')

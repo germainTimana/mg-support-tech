@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { proxyToBackend } from '@/lib/api-auth';
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  return proxyToBackend(req, `/pedidos/${id}`, ['admin', 'tecnico', 'cliente']);
+export async function GET(req: NextRequest) {
+  return proxyToBackend(req, 'auto', ['admin', 'tecnico', 'cliente']);
 }

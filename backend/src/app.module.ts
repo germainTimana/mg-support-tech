@@ -7,10 +7,12 @@ import { EquiposModule } from './equipos/equipos.module';
 import { ServiciosModule } from './servicios/servicios.module';
 import { PagosModule } from './pagos/pagos.module';
 import { EventsModule } from './events/events.module';
+import { LoggerModule } from './common/logger/logger.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
+    LoggerModule,
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
