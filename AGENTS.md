@@ -53,9 +53,11 @@
 
 ## Reglas para escribir pruebas
 
-- (Pendiente de implementar) Backend: Jest + Supertest para controllers y services.
-- (Pendiente de implementar) Frontend: no hay framework de tests configurado.
-- Toda prueba nueva debe cubrir el guard de rol correspondiente.
+- Backend: Jest + `@nestjs/testing` con mocks (sin MongoDB real). Configurado en `package.json` (`jest` key) y scripts `test`/`test:watch`/`test:cov`.
+- Convención: `src/<modulo>/<nombre>.service.spec.ts` por servicio, mockeando `getModelToken`, `EventsGateway` y `AppLogger`. Helper `queryChain` para chains de mongoose thenables.
+- Frontend: no hay framework de tests configurado; validar con `npx tsc --noEmit`.
+- Toda prueba nueva debe cubrir el guard de rol correspondiente (admin/tecnico/cliente) y el caso de transición de Kanban.
+- Skill `tester` documenta los pasos de validación en cada cambio.
 
 ## Reglas para mantener compatibilidad
 

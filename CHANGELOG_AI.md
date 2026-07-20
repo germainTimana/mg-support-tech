@@ -7,6 +7,10 @@
 
 ### Nuevo
 
+- Tests del backend configurados: Jest + ts-jest + `@nestjs/testing`, scripts `test`/`test:watch`/`test:cov` y sección `jest` en `package.json`.
+- `servicios.service.spec.ts`: 13 tests cubriendo transiciones de Kanban, permisos por rol (admin/tecnico/cliente), reversión desde `entregado` solo admin, bloqueo de entrega sin pago y casos NotFound.
+- Skill `tester` (`.agents/skills/tester/SKILL.md`) con checklist de validación en cada cambio (build backend + jest + tsc frontend).
+
 - Control de errores centralizado en backend: `AppLogger` estructurado (JSON), `GlobalExceptionFilter` y excepciones de dominio (`domain.exception.ts`).
 - Logger de consola en frontend (`ui-logger.ts`) integrado en `api.ts` y `api-auth.ts` para validar errores y respuestas erróneas.
 - Proxies Next.js faltantes: `servicios/[id]`, `servicios/[id]/estado`, `servicios/[id]/observaciones`, `servicios/codigo/[codigo]`, `pagos/servicio/[servicioId]`, `pedidos/[id]`, `users/[id]` (usando `path='auto'`).
