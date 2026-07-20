@@ -16,6 +16,7 @@ import { KANBAN_COLUMNS, type Servicio, type ServiceStatus, type UserRole } from
 import { KanbanColumn } from './KanbanColumn';
 import { ServiceCard } from './ServiceCard';
 import { ServiceDetailModal } from './ServiceDetailModal';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 interface KanbanBoardProps {
   readOnly?: boolean;
@@ -39,6 +40,7 @@ export function KanbanBoard({ readOnly, allowDrag = true, role, onPay }: KanbanB
   const [selected, setSelected] = useState<Servicio | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { t } = useTranslation();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -51,7 +53,7 @@ export function KanbanBoard({ readOnly, allowDrag = true, role, onPay }: KanbanB
       if (!res.ok) throw new Error(data.message);
       setBoard({ ...emptyBoard(), ...data });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar tablero');
+      setError(err instanceof Error ? err.message : t('kanban.error_load'));
     } finally {
       setLoading(false);
     }
@@ -138,7 +140,7 @@ export function KanbanBoard({ readOnly, allowDrag = true, role, onPay }: KanbanB
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al mover servicio');
+      setError(err instanceof Error ? err.message : t('kanban.error_move'));
       loadBoard();
     }
   }
@@ -157,7 +159,7 @@ export function KanbanBoard({ readOnly, allowDrag = true, role, onPay }: KanbanB
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center text-[var(--muted)]">
-        Cargando tablero...
+        {t('kanban.loading')}
       </div>
     );
   }
@@ -168,7 +170,7 @@ export function KanbanBoard({ readOnly, allowDrag = true, role, onPay }: KanbanB
         <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error}
           <button className="ml-2 underline" onClick={() => setError('')}>
-            Cerrar
+            {t('common.close')}
           </button>
         </div>
       )}

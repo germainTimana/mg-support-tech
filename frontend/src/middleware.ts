@@ -12,34 +12,33 @@ const roleRoutes: Record<string, string[]> = {
   cliente: ['/cliente'],
 };
 
+function getRoleHome(role: string): string {
+  if (role === 'admin') return '/admin';
+  if (role === 'tecnico') return '/tecnico';
+  if (role === 'cliente') return '/cliente';
+  return '/login';
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('token')?.value;
 
-  if (pathname === '/login') {
-    if (token) {
-      try {
-        await jwtVerify(token, JWT_SECRET, { algorithms: ['HS256'] });
-        return NextResponse.redirect(new URL('/', request.url));
-      } catch {
-        /* continue to login */
-      }
-    }
-    return NextResponse.next();
-  }
-
-  const protectedPaths = ['/admin', '/tecnico', '/cliente'];
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
-
-  if (!isProtected) return NextResponse.next();
-
   if (!token) {
+    if (pathname === '/login') return NextResponse.next();
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET, { algorithms: ['HS256'] });
     const role = payload.role as string;
+
+    if (pathname === '/login') {
+      return NextResponse.redirect(new URL(getRoleHome(role), request.url));
+    }
+
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL(getRoleHome(role), request.url));
+    }
 
     for (const [allowedRole, prefixes] of Object.entries(roleRoutes)) {
       if (role !== allowedRole) continue;
@@ -48,10 +47,9 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    const home =
-      role === 'admin' ? '/admin' : role === 'tecnico' ? '/tecnico' : '/cliente';
-    return NextResponse.redirect(new URL(home, request.url));
+    return NextResponse.redirect(new URL(getRoleHome(role), request.url));
   } catch {
+    if (pathname === '/login') return NextResponse.next();
     const response = NextResponse.redirect(new URL('/login', request.url));
     response.cookies.delete('token');
     return response;
@@ -59,5 +57,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/tecnico/:path*', '/cliente/:path*', '/login'],
+  matcher: ['/', '/admin/:path*', '/tecnico/:path*', '/cliente/:path*', '/login'],
 };
