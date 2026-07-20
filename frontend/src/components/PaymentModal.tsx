@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, CreditCard } from 'lucide-react';
 import type { Servicio, PaymentMethod } from '@/lib/types';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 interface PaymentModalProps {
   servicio: Servicio;
@@ -18,6 +19,7 @@ export function PaymentModal({ servicio, onClose, onSuccess }: PaymentModalProps
   const [notas, setNotas] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { t } = useTranslation();
 
   const equipo = typeof servicio.equipoId === 'object' ? servicio.equipoId : null;
 
@@ -43,7 +45,7 @@ export function PaymentModal({ servicio, onClose, onSuccess }: PaymentModalProps
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al procesar pago');
+      setError(err instanceof Error ? err.message : t('payment.error'));
     } finally {
       setLoading(false);
     }
@@ -56,7 +58,7 @@ export function PaymentModal({ servicio, onClose, onSuccess }: PaymentModalProps
           <div>
             <h2 className="flex items-center gap-2 text-xl font-bold">
               <CreditCard className="h-5 w-5 text-emerald-400" />
-              Pagar servicio
+              {t('payment.title')}
             </h2>
             <p className="font-mono text-sm text-blue-400">{servicio.codigoServicio}</p>
           </div>
@@ -66,28 +68,28 @@ export function PaymentModal({ servicio, onClose, onSuccess }: PaymentModalProps
         </div>
 
         <div className="mb-4 rounded-lg bg-[var(--bg)] p-4">
-          <h3 className="mb-2 text-sm font-semibold text-[var(--muted)]">Resumen del servicio</h3>
+          <h3 className="mb-2 text-sm font-semibold text-[var(--muted)]">{t('payment.summary')}</h3>
           <div className="space-y-1 text-sm">
             <p>
-              <span className="text-[var(--muted)]">Equipo:</span>{' '}
+              <span className="text-[var(--muted)]">{t('payment.equipment')}:</span>{' '}
               {equipo?.marca} {equipo?.modelo}
             </p>
             <p>
-              <span className="text-[var(--muted)]">Problema:</span>{' '}
+              <span className="text-[var(--muted)]">{t('payment.problem')}:</span>{' '}
               {equipo?.descripcionProblema}
             </p>
             <p>
-              <span className="text-[var(--muted)]">Servicio:</span> {servicio.descripcion}
+              <span className="text-[var(--muted)]">{t('payment.serviceLabel')}:</span> {servicio.descripcion}
             </p>
             <p className="pt-2 text-lg font-bold text-emerald-400">
-              Total: ${servicio.costoEstimado.toLocaleString()} COP
+              {t('payment.total')}: ${servicio.costoEstimado.toLocaleString()} {t('payment.currency')}
             </p>
           </div>
         </div>
 
         <div className="space-y-3">
           <div>
-            <label className="label">Método de pago</label>
+            <label className="label">{t('payment.method')}</label>
             <div className="grid grid-cols-2 gap-2">
               {(['nequi', 'b-bre'] as PaymentMethod[]).map((m) => (
                 <button
@@ -107,38 +109,38 @@ export function PaymentModal({ servicio, onClose, onSuccess }: PaymentModalProps
           </div>
 
           <div>
-            <label className="label">Referencia / Nº de transacción</label>
+            <label className="label">{t('payment.reference')}</label>
             <input
               className="input"
               value={referencia}
               onChange={(e) => setReferencia(e.target.value)}
-              placeholder="Ej: 1234567890"
+              placeholder={t('payment.placeholderRef')}
               required
             />
           </div>
 
           <div>
-            <label className="label">Teléfono origen</label>
+            <label className="label">{t('payment.phoneOrigin')}</label>
             <input
               className="input"
               value={telefonoOrigen}
               onChange={(e) => setTelefonoOrigen(e.target.value)}
-              placeholder="300 123 4567"
+              placeholder={t('payment.placeholderPhone')}
             />
           </div>
 
           <div>
-            <label className="label">Nombre del titular</label>
+            <label className="label">{t('payment.holderName')}</label>
             <input
               className="input"
               value={nombreTitular}
               onChange={(e) => setNombreTitular(e.target.value)}
-              placeholder="Nombre completo"
+              placeholder={t('payment.placeholderName')}
             />
           </div>
 
           <div>
-            <label className="label">Notas (opcional)</label>
+            <label className="label">{t('payment.notes')}</label>
             <textarea
               className="input min-h-[60px]"
               value={notas}
@@ -155,7 +157,7 @@ export function PaymentModal({ servicio, onClose, onSuccess }: PaymentModalProps
             disabled={loading || !referencia}
             className="btn-primary w-full bg-emerald-600 hover:bg-emerald-700"
           >
-            {loading ? 'Procesando...' : `Confirmar pago $${servicio.costoEstimado.toLocaleString()}`}
+            {loading ? t('common.loading') : `${t('payment.submit')} $${servicio.costoEstimado.toLocaleString()}`}
           </button>
         </div>
       </div>

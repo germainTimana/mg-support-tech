@@ -4,6 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Laptop } from 'lucide-react';
 import type { Servicio } from '@/lib/types';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 interface ServiceCardProps {
   servicio: Servicio;
@@ -12,6 +13,7 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ servicio, onClick, draggable }: ServiceCardProps) {
+  const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: servicio._id,
     disabled: !draggable,
@@ -58,7 +60,7 @@ export function ServiceCard({ servicio, onClick, draggable }: ServiceCardProps) 
           <p className="mt-1 line-clamp-2 text-xs text-[var(--muted)]">{servicio.descripcion}</p>
           <div className="mt-2 flex items-center justify-between text-xs">
             <span className="text-[var(--muted)]">
-              {typeof servicio.clienteId === 'object' ? servicio.clienteId.nombre : 'Cliente'}
+              {typeof servicio.clienteId === 'object' ? servicio.clienteId.nombre : t('service.fallbackClient')}
             </span>
             <span className="font-medium text-emerald-400">
               ${servicio.costoEstimado.toLocaleString()}
@@ -66,7 +68,7 @@ export function ServiceCard({ servicio, onClick, draggable }: ServiceCardProps) 
           </div>
           {servicio.pagado && (
             <span className="mt-2 inline-block rounded bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">
-              Pagado
+              {t('service.paid')}
             </span>
           )}
         </div>

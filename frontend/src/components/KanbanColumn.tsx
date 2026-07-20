@@ -4,6 +4,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { Servicio, ServiceStatus } from '@/lib/types';
 import { ServiceCard } from './ServiceCard';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 interface KanbanColumnProps {
   column: { id: ServiceStatus; label: string; color: string };
@@ -13,6 +14,7 @@ interface KanbanColumnProps {
 }
 
 export function KanbanColumn({ column, servicios, onSelect, draggable }: KanbanColumnProps) {
+  const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
@@ -23,7 +25,7 @@ export function KanbanColumn({ column, servicios, onSelect, draggable }: KanbanC
       }`}
     >
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-semibold text-white">{column.label}</h3>
+        <h3 className="font-semibold text-[var(--text)]">{t('kanban.' + column.id)}</h3>
         <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">{servicios.length}</span>
       </div>
       <SortableContext items={servicios.map((s) => s._id)} strategy={verticalListSortingStrategy}>
@@ -37,7 +39,7 @@ export function KanbanColumn({ column, servicios, onSelect, draggable }: KanbanC
             />
           ))}
           {servicios.length === 0 && (
-            <p className="py-8 text-center text-xs text-[var(--muted)]">Sin servicios</p>
+            <p className="py-8 text-center text-xs text-[var(--muted)]">—</p>
           )}
         </div>
       </SortableContext>

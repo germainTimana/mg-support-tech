@@ -4,7 +4,8 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+[data-theme='dark'] {
   --bg: #0f1419;
   --surface: #1a2332;
   --surface-hover: #243044;
@@ -16,6 +17,20 @@
   --success: #22c55e;
   --warning: #f59e0b;
   --danger: #ef4444;
+}
+
+[data-theme='light'] {
+  --bg: #f0f4f8;
+  --surface: #ffffff;
+  --surface-hover: #eef2f6;
+  --border: #d1d9e6;
+  --text: #1a2332;
+  --muted: #6b7a99;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
 }
 
 body {
