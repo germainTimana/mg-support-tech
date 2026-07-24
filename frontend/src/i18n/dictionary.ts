@@ -48,6 +48,37 @@ export interface Dictionary {
     errorUnknown: string;
     networkError: string;
     footer: string;
+    forgotPassword: string;
+    forgotPasswordLink: string;
+    backToLogin: string;
+  };
+  forgot: {
+    title: string;
+    subtitle: string;
+    successTitle: string;
+    successMessage: string;
+    successHint: string;
+    submit: string;
+    sending: string;
+    errorGeneric: string;
+  };
+  reset: {
+    title: string;
+    subtitle: string;
+    newPassword: string;
+    confirmPassword: string;
+    newPasswordPlaceholder: string;
+    confirmPasswordPlaceholder: string;
+    submit: string;
+    submitting: string;
+    successTitle: string;
+    successMessage: string;
+    invalidLinkTitle: string;
+    invalidLinkMessage: string;
+    invalidLinkAction: string;
+    errorMinLength: string;
+    errorMismatch: string;
+    errorGeneric: string;
   };
   admin: {
     title: string;
