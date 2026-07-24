@@ -57,7 +57,14 @@
 - Convención: `src/<modulo>/<nombre>.service.spec.ts` por servicio, mockeando `getModelToken`, `EventsGateway` y `AppLogger`. Helper `queryChain` para chains de mongoose thenables.
 - Frontend: no hay framework de tests configurado; validar con `npx tsc --noEmit`.
 - Toda prueba nueva debe cubrir el guard de rol correspondiente (admin/tecnico/cliente) y el caso de transición de Kanban.
-- Skill `tester` documenta los pasos de validación en cada cambio.
+
+## Flujo de git para subir cambios
+
+Cuando se pida "sube los cambios a git", ejecutar el flujo definido en el skill `tester` (`.agents/skills/tester/SKILL.md`):
+1. Commit + push en la rama actual.
+2. Switch a `main` → pull → merge de la rama de trabajo → push a `origin/main`.
+3. Volver a la rama de trabajo (`dev_support_mg` o la que corresponda).
+4. Solo ejecutar este flujo cuando se indique explícitamente; nunca commitear sin permiso.
 
 ## Reglas para mantener compatibilidad
 

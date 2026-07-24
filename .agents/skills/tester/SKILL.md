@@ -5,7 +5,56 @@ description: Run and maintain automated tests for MG Support Tech. Use when aske
 
 # Tester Skill — MG Support Tech
 
-Valida que el proyecto compile y que las pruebas pasen en cada cambio.
+Valida que el proyecto compile, que las pruebas pasen y ejecuta el flujo de git para subir cambios.
+
+## Flujo de git (subir cambios a git)
+
+Cuando se indique "sube los cambios a git", ejecutar en este orden:
+
+1. **Commit** en la rama actual (detectada automáticamente, ej: `dev_support_mg`)
+2. **Push** a la rama remota correspondiente (`origin/<rama_actual>`)
+3. **Switch** a `main`
+4. **Pull** desde `origin/main`
+5. **Merge** la rama de trabajo (la que estaba antes del paso 3) en `main`
+6. **Push** a `origin/main`
+7. **Volver a la rama de trabajo** (`dev_support_mg` o la que corresponda) para continuar
+
+### Variables a detectar en cada ejecución
+
+- `CURRENT_BRANCH` = rama donde se hizo el commit (paso 1). Guardar antes de cambiar a `main`.
+
+### Comandos PowerShell secuenciales
+
+```powershell
+# 1. Commit (el mensaje va según el cambio)
+git commit -m "feat: <descripción>"
+
+# 2. Push a la rama actual
+git push origin <CURRENT_BRANCH>
+
+# 3. Cambiar a main
+git checkout main
+
+# 4. Traer cambios remotos
+git pull origin main
+
+# 5. Merge de la rama de trabajo
+git merge <CURRENT_BRANCH>
+
+# 6. Push a main
+git push origin main
+
+# 7. Volver a la rama de trabajo
+git checkout <CURRENT_BRANCH>
+```
+
+### Reglas para commit
+
+- Mensaje en español, siguiendo conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`.
+- Incluir un cuerpo con bullet points detallando cada archivo tocado (opcional si son muchos).
+- No hacer `git add -A` sin verificar antes `git status` y `git diff --stat HEAD`.
+- No commitear `.env`, `.env.local`, `node_modules`, `dist`, `.next`.
+- Si hay cambios que no deben ir al commit (archivos personales), usar `git add` selectivo.
 
 ## Backend (NestJS)
 
