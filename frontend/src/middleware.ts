@@ -23,8 +23,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('token')?.value;
 
+  const publicPaths = ['/login', '/forgot-password', '/reset-password'];
+  const isPublic = publicPaths.some((p) => pathname === p);
+
   if (!token) {
-    if (pathname === '/login') return NextResponse.next();
+    if (isPublic) return NextResponse.next();
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -32,7 +35,7 @@ export async function middleware(request: NextRequest) {
     const { payload } = await jwtVerify(token, JWT_SECRET, { algorithms: ['HS256'] });
     const role = payload.role as string;
 
-    if (pathname === '/login') {
+    if (isPublic) {
       return NextResponse.redirect(new URL(getRoleHome(role), request.url));
     }
 
@@ -49,7 +52,7 @@ export async function middleware(request: NextRequest) {
 
     return NextResponse.redirect(new URL(getRoleHome(role), request.url));
   } catch {
-    if (pathname === '/login') return NextResponse.next();
+    if (isPublic) return NextResponse.next();
     const response = NextResponse.redirect(new URL('/login', request.url));
     response.cookies.delete('token');
     return response;
@@ -57,5 +60,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/admin/:path*', '/tecnico/:path*', '/cliente/:path*', '/login'],
+  matcher: ['/', '/admin/:path*', '/tecnico/:path*', '/cliente/:path*', '/login', '/forgot-password', '/reset-password'],
 };

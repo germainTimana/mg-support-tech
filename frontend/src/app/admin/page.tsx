@@ -18,7 +18,6 @@ export default function AdminDashboard() {
   const [userForm, setUserForm] = useState({
     nombre: '',
     email: '',
-    password: '',
     role: 'cliente' as 'cliente' | 'tecnico',
     documentoIdentidad: '',
     telefono: '',
@@ -70,7 +69,7 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       setMessage(t('admin.messages.userCreated'));
-      setUserForm({ ...userForm, nombre: '', email: '', password: '', documentoIdentidad: '', telefono: '', direccion: '' });
+      setUserForm({ ...userForm, nombre: '', email: '', documentoIdentidad: '', telefono: '', direccion: '' });
       loadUsers();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
@@ -168,7 +167,7 @@ export default function AdminDashboard() {
             <h2 className="font-semibold">{t('admin.sections.registerUser')}</h2>
             <input className="input" placeholder={t('admin.sections.fullName')} value={userForm.nombre} onChange={(e) => setUserForm({ ...userForm, nombre: e.target.value })} required />
             <input className="input" type="email" placeholder={t('admin.sections.email')} value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} required />
-            <input className="input" type="password" placeholder={t('admin.sections.password')} value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} required />
+            <p className="text-xs text-[var(--muted)]">Contraseña por defecto: MGS654321</p>
             <select className="input" value={userForm.role} onChange={(e) => setUserForm({ ...userForm, role: e.target.value as 'cliente' | 'tecnico' })}>
               <option value="cliente">{t('roles.cliente')}</option>
               <option value="tecnico">{t('roles.tecnico')}</option>

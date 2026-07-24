@@ -9,6 +9,7 @@ import { PagosModule } from './pagos/pagos.module';
 import { EventsModule } from './events/events.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { HealthController } from './health/health.controller';
+import { PasswordResetModule } from './auth/password-reset/password-reset.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { HealthController } from './health/health.controller';
     ServiciosModule,
     PagosModule,
     EventsModule,
+    PasswordResetModule,
   ],
   controllers: [HealthController],
 })

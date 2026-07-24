@@ -11,7 +11,8 @@ export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async create(dto: CreateUserDto): Promise<Omit<User, 'password'>> {
-    const hashed = await bcrypt.hash(dto.password, 10);
+    const password = dto.password || 'MGS654321';
+    const hashed = await bcrypt.hash(password, 10);
     const user = await this.userModel.create({ ...dto, password: hashed });
     return this.sanitize(user);
   }
@@ -43,6 +44,10 @@ export class UsersService {
       .exec();
     if (!user) throw new NotFoundException('Usuario no encontrado');
     return user;
+  }
+
+  async updatePassword(id: string, hashed: string) {
+    await this.userModel.findByIdAndUpdate(id, { password: hashed }).exec();
   }
 
   sanitize(user: UserDocument) {

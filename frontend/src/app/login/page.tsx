@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Monitor, Lock, Mail, Sun, Moon, Languages, ChevronDown } from 'lucide-react';
 import { useTranslation } from '@/i18n/I18nProvider';
 import { useTheme } from '@/components/ThemeProvider';
@@ -148,6 +149,15 @@ export default function LoginPage() {
                 required
               />
             </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Link
+              href="/forgot-password"
+              className="text-xs text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
+            >
+              {t('login.forgotPasswordLink')}
+            </Link>
           </div>
 
           <button type="submit" disabled={loading} className="btn-primary w-full">
