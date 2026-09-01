@@ -1,7 +1,7 @@
 # CHANGELOG_AI.md
 
 > Registro de cambios funcionales detectados automáticamente. No registrar cambios cosméticos.
-> Última actualización: 2026-07-19
+> Última actualización: 2026-07-24
 
 ## 2026-07-20
 
@@ -25,7 +25,22 @@
 
 -
 
-## 2026-07-19
+## 2026-07-24
+
+### Nuevo
+
+- Sistema de recuperación de contraseña por email (`forgot-password` + `reset-password`).
+- Skill `start-stop` (`.agents/skills/start-stop/SKILL.md`) para iniciar/detener backend y frontend.
+
+### Modificado
+
+- Vista de recepción de equipo en admin: cliente muestra `nombre - documento - teléfono`; accesorios vacío → `"Ninguno"` por defecto.
+- `EquiposService.create`: default `"Ninguno"` para accesorios si viene vacío.
+- Fix build frontend: `useSearchParams` envuelto en `<Suspense>` en `reset-password/page.tsx`.
+
+### Eliminado
+
+-
 
 ### Nuevo
 

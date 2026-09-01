@@ -84,7 +84,7 @@ export default function AdminDashboard() {
       const res = await fetch('/api/platos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(equipoForm),
+        body: JSON.stringify({ ...equipoForm, accesorios: equipoForm.accesorios || 'Ninguno' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
@@ -195,12 +195,12 @@ export default function AdminDashboard() {
       {tab === 'recepcion' && (
         <form onSubmit={createEquipo} className="card mx-auto max-w-xl space-y-3">
           <h2 className="font-semibold">{t('admin.sections.receptionTitle')}</h2>
-          <select className="input" value={equipoForm.clienteId} onChange={(e) => setEquipoForm({ ...equipoForm, clienteId: e.target.value })} required>
-            <option value="">{t('admin.sections.selectClient')}</option>
-            {clientes.map((c) => (
-              <option key={c._id} value={c._id}>{c.nombre} - {c.documentoIdentidad}</option>
-            ))}
-          </select>
+            <select className="input" value={equipoForm.clienteId} onChange={(e) => setEquipoForm({ ...equipoForm, clienteId: e.target.value })} required>
+              <option value="">{t('admin.sections.selectClient')}</option>
+              {clientes.map((c) => (
+                <option key={c._id} value={c._id}>{c.nombre} - {c.documentoIdentidad} - {c.telefono || ''}</option>
+              ))}
+            </select>
           <input className="input" placeholder={t('admin.sections.brand')} value={equipoForm.marca} onChange={(e) => setEquipoForm({ ...equipoForm, marca: e.target.value })} required />
           <input className="input" placeholder={t('admin.sections.model')} value={equipoForm.modelo} onChange={(e) => setEquipoForm({ ...equipoForm, modelo: e.target.value })} required />
           <input className="input" placeholder={t('admin.sections.serial')} value={equipoForm.serial} onChange={(e) => setEquipoForm({ ...equipoForm, serial: e.target.value })} />

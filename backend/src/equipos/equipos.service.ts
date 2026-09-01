@@ -13,6 +13,7 @@ export class EquiposService {
   async create(dto: CreateEquipoDto, adminId: string) {
     const equipo = await this.equipoModel.create({
       ...dto,
+      accesorios: dto.accesorios || 'Ninguno',
       recibidoPorId: adminId,
     });
     return this.populate(equipo._id.toString());

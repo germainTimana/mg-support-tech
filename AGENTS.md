@@ -72,6 +72,13 @@ Cuando se pida "sube los cambios a git", ejecutar el flujo definido en el skill 
 - `JWT_SECRET` debe ser idéntico en backend y frontend (o usar clave de solo-verificación en frontend).
 - Variables de entorno: documentar nuevas en `.env.production.example` y `PROJECT_CONTEXT.md`.
 
+## Gestión de servicios (start/stop)
+
+- Skill `start-stop` (`.agents/skills/start-stop/SKILL.md`) para iniciar o detener el proyecto.
+- Backend NestJS en puerto `4000`, frontend Next.js en puerto `3000`.
+- Al iniciar: primero backend (`npm run start:dev`), luego frontend (`npm run dev`).
+- Al detener: primero frontend, luego backend.
+
 ## Qué archivos consultar antes de modificar código
 
 1. `PROJECT_CONTEXT.md` — contexto general y riesgos.

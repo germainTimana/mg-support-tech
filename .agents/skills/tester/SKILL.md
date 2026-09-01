@@ -93,3 +93,4 @@ npx tsc --noEmit    # debe ser EXIT 0
 - Nunca subir `*.tsbuildinfo` (en `.gitignore`).
 - Todo nuevo endpoint/servicio debe tener su spec que cubra el `RolesGuard`/rol correspondiente.
 - No ejecutar el servidor en producción como validación; usar build + test + tsc.
+- Para iniciar/detener el proyecto, usar el skill `start-stop` (`.agents/skills/start-stop/SKILL.md`).
